@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sorteio de Números - Guilda</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #081229, #0f2d6b);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      color: #fff;
+    }
+
+    .container {
+      background: #0b1e44;
+      padding: 20px;
+      border-radius: 14px;
+      box-shadow: 0 0 20px rgba(0, 150, 255, 0.4);
+      width: 100%;
+      max-width: 650px;
+    }
+
+    h1, h2 {
+      text-align: center;
+      color: #4cc3ff;
+    }
+
+    label {
+      margin-top: 10px;
+      display: block;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+    }
+
+    input, select {
+      background: #132b63;
+      color: white;
+    }
+
+    button {
+      background: #1e90ff;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      background: #12295c;
+      margin: 6px 0;
+      padding: 10px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .admin-btn {
+      width: auto;
+      padding: 6px 10px;
+      background: #ff4d4d;
+      font-size: 12px;
+    }
+
+    .result {
+      margin-top: 15px;
+      padding: 12px;
+      background: #0e3b1e;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .admin-panel {
+      margin-top: 20px;
+      padding: 12px;
+      background: #081a3a;
+      border-radius: 10px;
+      display: none;
+    }
+
+    .admin-panel h2 {
+      margin-top: 0;
+    }
+
+    @media (max-width: 500px) {
+      body {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎮 Sorteio da Guilda</h1>
+
+    <label>Nome:</label>
+    <input type="text" id="nameInput" placeholder="Digite seu nome">
+
+    <label>Escolha um número:</label>
+    <select id="numberSelect"></select>
+
+    <button onclick="addEntry()">Confirmar participação</button>
+
+    <h2>Participantes</h2>
+    <ul id="participantsList"></ul>
+
+    <h2>Sorteio</h2>
+    <button onclick="drawWinner()">Realizar sorteio</button>
+
+    <div id="result" class="result" style="display:none"></div>
+
+    <h2>Painel Administrador</h2>
+    <input type="password" id="adminPassword" placeholder="Senha do administrador">
+    <button onclick="loginAdmin()">Entrar como admin</button>
+
+    <div class="admin-panel" id="adminPanel">
+      <h2>Controle Admin</h2>
+      <button onclick="clearAll()">Limpar todos participantes</button>
+    </div>
+  </div>
+
+  <script>
+    const MAX_NUMBER = 50;
+    const ADMIN_PASSWORD = "adminluxo"; // você pode mudar
+
+    let entries = JSON.parse(localStorage.getItem('entries')) || [];
+    let adminMode = false;
+
+    const numberSelect = document.getElementById('numberSelect');
+    const participantsList = document.getElementById('participantsList');
+    const resultDiv = document.getElementById('result');
+    const adminPanel = document.getElementById('adminPanel');
+
+    function populateNumbers() {
+      numberSelect.innerHTML = '';
+
+      const usedNumbers = entries.map(e => e.number);
+
+      for (let i = 1; i <= MAX_NUMBER; i++) {
+        if (!usedNumbers.includes(i)) {
+          const option = document.createElement('option');
+          option.value = i;
+          option.textContent = i;
+          numberSelect.appendChild(option);
+        }
+      }
+
+      if (numberSelect.options.length === 0) {
+        const option = document.createElement('option');
+        option.textContent = 'Todos números usados';
+        numberSelect.appendChild(option);
+      }
+    }
+
+    function renderList() {
+      participantsList.innerHTML = '';
+
+      entries.forEach((e, index) => {
+        const li = document.createElement('li');
+        li.textContent = `${e.name} — Nº ${e.number}`;
+
+        if (adminMode) {
+          const btn = document.createElement('button');
+          btn.textContent = 'Remover';
+          btn.className = 'admin-btn';
+          btn.onclick = () => removeEntry(index);
+          li.appendChild(btn);
+        }
+
+        participantsList.appendChild(li);
+      });
+    }
+
+    function addEntry() {
+      const nameInput = document.getElementById('nameInput');
+      const name = nameInput.value.trim();
+      const number = parseInt(numberSelect.value);
+
+      if (!name) {
+        alert('Digite um nome.');
+        return;
+      }
+
+      if (entries.some(e => e.number === number)) {
+        alert('Número já escolhido.');
+        return;
+      }
+
+      entries.push({ name, number });
+      localStorage.setItem('entries', JSON.stringify(entries));
+
+      nameInput.value = '';
+
+      populateNumbers();
+      renderList();
+    }
+
+    function drawWinner() {
+      if (!adminMode) {
+        alert('Apenas o administrador pode realizar o sorteio.');
+        return;
+      }
+
+      if (entries.length === 0) {
+        alert('Nenhum participante.');
+        return;
+      }
+
+      const winner = entries[Math.floor(Math.random() * entries.length)];
+      resultDiv.style.display = 'block';
+      resultDiv.textContent = `🏆 Vencedor: ${winner.name} com o número ${winner.number}`;
+    }
+
+    function loginAdmin() {
+      const pass = document.getElementById('adminPassword').value;
+
+      if (pass === ADMIN_PASSWORD) {
+        adminMode = true;
+        adminPanel.style.display = 'block';
+        renderList();
+        alert('Modo administrador ativado');
+      } else {
+        alert('Senha incorreta');
+      }
+    }
+
+    function removeEntry(index) {
+      entries.splice(index, 1);
+      localStorage.setItem('entries', JSON.stringify(entries));
+      populateNumbers();
+      renderList();
+    }
+
+    function clearAll() {
+      if (confirm('Apagar todos participantes?')) {
+        entries = [];
+        localStorage.removeItem('entries');
+        populateNumbers();
+        renderList();
+        resultDiv.style.display = 'none';
+      }
+    }
+
+    populateNumbers();
+    renderList();
+  </script>
+</body>
+</html>
